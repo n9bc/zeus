@@ -78,9 +78,22 @@ public sealed partial class RepoUpdateService
     public async Task<RepoUpdateStatus> GetStatusAsync(bool fetch, CancellationToken ct)
     {
         var local = await BuildLocalStatusAsync(ct).ConfigureAwait(false);
-        if (!fetch)
-            return local;
-        return await AddDownloadStatusAsync(local, ct).ConfigureAwait(false);
+
+        // LOCAL NOTE (2026-09-20): in-app update checking is disabled for this
+        // Mac test tree. Unsigned DMGs stamp InformationalVersion "1.85-dev"
+        // (Directory.Build.props VersionSuffix=dev unless GITHUB_REF_TYPE=tag)
+        // while GitHub latest.json reports "1.85". IsManifestNewer treats a
+        // suffix mismatch at the same numeric prefix as a newer rolling build,
+        // so startup showed "an update" for the same version. Restore the
+        // fetch path below (and drop the with-expression) to re-enable.
+        // See docs/lessons/local-update-check-disabled.md.
+        _ = fetch;
+        return local with
+        {
+            UpdateAvailable = false,
+            ForceUpdate = false,
+            UpdateAction = "none",
+        };
     }
 
     /// <summary>Assemble the local half of the status: installed version, runtime
