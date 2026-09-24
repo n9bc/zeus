@@ -19,6 +19,7 @@
 // retroactive edits — same trade CW Skimmer makes).
 
 import * as ort from 'onnxruntime-web/wasm';
+import { CwAntiAliasFilter, resampleTo } from './cw-antialias';
 
 interface Meta {
   chars: string[]; blank_index: number; sample_rate: number;
@@ -45,53 +46,9 @@ let lastEmittedPos = -1;
 let timer: ReturnType<typeof setInterval> | null = null;
 let busy = false;
 
-// 4th-order Butterworth lowpass as two cascaded biquads with streaming state:
-// decimating 48 kHz -> 3200 Hz by interpolation alone folds 1.6-24 kHz into
-// the model band (2.0-2.8 kHz lands EXACTLY inside 400-1200 Hz) — wide RX
-// filters turned that fold into the reported junk. Cutoff 1350 Hz.
-const lpf = { rate: 0, s: [0, 0, 0, 0, 0, 0, 0, 0], c: [] as number[][] };
-function designLpf(rate: number): void {
-  lpf.rate = rate;
-  lpf.s.fill(0);
-  lpf.c = [0.5411961, 1.3065630].map((q) => {
-    const w0 = (2 * Math.PI * 1350) / rate;
-    const alpha = Math.sin(w0) / (2 * q);
-    const cosW = Math.cos(w0);
-    const b0 = (1 - cosW) / 2, b1 = 1 - cosW, b2 = (1 - cosW) / 2;
-    const a0 = 1 + alpha, a1 = -2 * cosW, a2 = 1 - alpha;
-    return [b0 / a0, b1 / a0, b2 / a0, a1 / a0, a2 / a0];
-  });
-}
-function lowpassInPlace(x: Float32Array, rate: number): void {
-  if (rate <= 3600) return; // already below the fold — nothing to protect
-  if (lpf.rate !== rate) designLpf(rate);
-  for (let stage = 0; stage < 2; stage++) {
-    const [b0, b1, b2, a1, a2] = lpf.c[stage]! as [number, number, number, number, number];
-    const o = stage * 4;
-    let x1 = lpf.s[o]!, x2 = lpf.s[o + 1]!, y1 = lpf.s[o + 2]!, y2 = lpf.s[o + 3]!;
-    for (let i = 0; i < x.length; i++) {
-      const xi = x[i]!;
-      const yi = b0 * xi + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2;
-      x2 = x1; x1 = xi; y2 = y1; y1 = yi;
-      x[i] = yi;
-    }
-    lpf.s[o] = x1; lpf.s[o + 1] = x2; lpf.s[o + 2] = y1; lpf.s[o + 3] = y2;
-  }
-}
-
-function resampleTo(audio: Float32Array, from: number, to: number): Float32Array {
-  if (from === to) return audio;
-  const outLen = Math.round((audio.length * to) / from);
-  const out = new Float32Array(outLen);
-  for (let i = 0; i < outLen; i++) {
-    const p = (i * from) / to;
-    const l = Math.floor(p);
-    const r = Math.min(l + 1, audio.length - 1);
-    const f = p - l;
-    out[i] = audio[l]! * (1 - f) + audio[r]! * f;
-  }
-  return out;
-}
+// Anti-alias lowpass (streaming state) + resampler, shared with the CW
+// compare panel so every neural decoder sees the same 3200 Hz input.
+const lpf = new CwAntiAliasFilter();
 
 function spectrogram(audio: Float32Array, m: Meta): { data: Float32Array; frames: number } {
   const N = m.fft_length, hop = m.hop_length, bins = m.spectrogram_frequency_bins;
@@ -200,7 +157,7 @@ onmessage = async (e: MessageEvent) => {
   } else if (msg.type === 'pcm') {
     if (!meta) return;
     const raw = msg.samples as Float32Array;
-    lowpassInPlace(raw, msg.sampleRate as number);
+    lpf.process(raw, msg.sampleRate as number);
     const chunk = resampleTo(raw, msg.sampleRate as number, ringRate);
     absWritten += chunk.length;
     const maxLen = WINDOW_SEC * ringRate;

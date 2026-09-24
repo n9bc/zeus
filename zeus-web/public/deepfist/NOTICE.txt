@@ -1,0 +1,13 @@
+DeepFist neural CW decoder — deepfist.onnx and deepfist.onnx.json are the
+exp27_bt champion model of the DeepFist project, (C) 2026 Brent Crier
+(N9BC), https://github.com/n9bc/DeepFist, licensed GPL-3.0-or-later (see
+LICENSE). Taken unmodified from the release
+https://github.com/n9bc/DeepFist/releases/tag/exp27_bt-champion:
+
+  deepfist.onnx       sha256 6d2d4e3d66f9001d15e21a1b38b79150eae19ead86a310202900ee69d672b94d
+  deepfist.onnx.json  sha256 840ceb8dba9d46d04495547a8a3789968b1acd2f8ac3a3a5c631f84008ac2217
+
+Zeus (GPL-2.0-or-later) combines with this work under GPLv3. The
+front-end (squelch, de-spike, conditioner, spectrogram, CTC commit) in
+zeus-web/src/plugins/deepfist/ is a port of the DeepFist Python reference.
+ONNX Runtime Web (MIT) © Microsoft.

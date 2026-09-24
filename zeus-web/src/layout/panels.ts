@@ -56,6 +56,7 @@ import { Ft8Panel } from './panels/Ft8Panel';
 import { FreeDvPanel } from './panels/FreeDvPanel';
 import { CwPanel } from './panels/CwPanel';
 import { DeepCwDecoderPanel } from '../plugins/deepcw/DeepCwDecoderPanel';
+import { CwComparePanel } from '../plugins/cwcompare/CwComparePanel';
 import { LogbookPanel } from './panels/LogbookPanel';
 import { TxMetersPanel } from './panels/TxMetersPanel';
 import { TxFidelityPanel } from './panels/TxFidelityPanel';
@@ -372,6 +373,18 @@ export const PANELS: Record<string, PanelDef> = {
     // a second default TileChrome on top, producing a duplicated window
     // header — and the panel's own close button goes dead because PanelTile
     // only injects onRemove to headerless panels.
+    headerless: true,
+    minW: 6,
+    minH: 6,
+  },
+  cwcompare: {
+    id: 'cwcompare',
+    name: 'CW Decoder · Compare',
+    category: 'plugins',
+    tags: ['cw', 'morse', 'decoder', 'receive', 'deep', 'neural', 'onnx', 'deepfist', 'compare', 'plugin'],
+    component: CwComparePanel,
+    // Headerless for the same reason as cwdecoder: the panel draws its own
+    // TileChrome with the ON/OFF toggle.
     headerless: true,
     minW: 6,
     minH: 6,

@@ -5682,6 +5682,56 @@
   animation: cwCursorBlink 1s steps(2) infinite;
 }
 
+/* ---- CW Decoder · Compare panel ---------------------------------- */
+/* DeepCW and DeepFist transcripts in two equal columns under the shared
+   controls + spectrogram. Stacks to one column on narrow tiles. */
+.cwcompare-lanes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+.cwcompare-lane {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  min-height: 0;
+}
+.cwcompare-lane-head {
+  font: 600 9px/1 var(--font-sans);
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+.cwcompare-lane-detail {
+  margin-left: 8px;
+  font: 500 9px/1 var(--font-mono);
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: var(--fg-3);
+}
+.cwcompare-capture {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.cwcompare-capture-note {
+  font: 500 9px/1.2 var(--font-mono);
+  color: var(--fg-3);
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.cwcompare-tape {
+  flex: 1 1 auto;
+  max-height: none;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
 /* ===== Liquid-metal meter kit (KB2UKA) — glass drift animations REMOVED ====
    The moving sheen + caustic light sweeps were removed per operator request.
    The static domed-glass specular (the GlassDome / MeterGlass / LiquidMetal-
