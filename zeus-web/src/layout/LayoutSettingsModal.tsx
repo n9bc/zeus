@@ -26,6 +26,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { useDialogFocusTrap } from './useDialogFocusTrap';
+import { BUILT_IN_LAYOUTS, findBuiltInLayout } from './defaultLayout';
 
 const ICON_PALETTE = [
   '📡', '🎙', '📻', '🎧', '🛰', '📶',
@@ -162,17 +163,41 @@ export function LayoutSettingsModal({
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) handleSave();
   };
 
-  // Create-mode "Start from" change: cloning a saved layout pre-fills the
-  // metadata fields from it so the new workspace reads as a copy. Picking
-  // "Blank" leaves whatever the operator has typed.
+  // Create-mode "Start from" change: picking a built-in or saved layout
+  // pre-fills the metadata fields from it so the new workspace reads as a copy.
+  // Picking "Blank" restores the original fields if they still hold the
+  // pre-filled values, and otherwise keeps whatever the operator has typed.
+  const prefilledRef = useRef<{ name: string; icon: string; description: string } | null>(
+    null,
+  );
   const handleSourceChange = (id: string) => {
     if (!createSource) return;
     createSource.onSourceChange(id);
-    const src = createSource.savedLayouts.find((l) => l.id === id);
+    const src =
+      findBuiltInLayout(id) ?? createSource.savedLayouts.find((l) => l.id === id);
     if (src) {
-      setName(src.name);
-      setIcon(src.icon ?? '');
-      setDescription(src.description ?? '');
+      const filled = {
+        name: src.name,
+        icon: src.icon ?? '',
+        description: src.description ?? '',
+      };
+      prefilledRef.current = filled;
+      setName(filled.name);
+      setIcon(filled.icon);
+      setDescription(filled.description);
+      return;
+    }
+    const filled = prefilledRef.current;
+    prefilledRef.current = null;
+    if (
+      filled &&
+      name === filled.name &&
+      icon === filled.icon &&
+      description === filled.description
+    ) {
+      setName(initial.name);
+      setIcon(initial.icon);
+      setDescription(initial.description);
     }
   };
 
@@ -225,6 +250,13 @@ export function LayoutSettingsModal({
                 aria-label="Start from"
               >
                 <option value="">Blank workspace</option>
+                <optgroup label="Built-in">
+                  {BUILT_IN_LAYOUTS.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
+                    </option>
+                  ))}
+                </optgroup>
                 {createSource.savedLayouts.length > 0 && (
                   <optgroup label="Copy a saved layout">
                     {createSource.savedLayouts.map((l) => (
@@ -236,7 +268,7 @@ export function LayoutSettingsModal({
                 )}
               </select>
               <span className="layout-settings-field-hint">
-                Start blank, or copy the panel arrangement of a saved layout.
+                Start blank, use a built-in arrangement, or copy a saved layout.
               </span>
             </label>
           )}

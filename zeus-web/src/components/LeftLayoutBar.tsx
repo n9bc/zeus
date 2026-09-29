@@ -40,6 +40,7 @@ import {
   type LayoutSettingsValue,
 } from '../layout/LayoutSettingsModal';
 import { EMPTY_WORKSPACE_LAYOUT } from '../layout/workspace';
+import { findBuiltInLayout } from '../layout/defaultLayout';
 import { ConfirmDialog } from '../layout/ConfirmDialog';
 import { openSettingsWindow, openWorkspaceWindow } from '../layout/workspace-windows';
 import { openExternalUrl } from './report-problem/openExternalUrl';
@@ -135,11 +136,14 @@ export function LeftLayoutBar() {
     if (modal.kind === 'create') {
       // Seed the new workspace: a chosen saved layout's arrangement, or blank.
       const source = createSourceId
-        ? savedLayouts.find((l) => l.id === createSourceId)
+        ? (findBuiltInLayout(createSourceId) ??
+          savedLayouts.find((l) => l.id === createSourceId))
         : undefined;
-      const base = source
-        ? parseLayoutOrDefault(source.layoutJson)
-        : EMPTY_WORKSPACE_LAYOUT;
+      const base = !source
+        ? EMPTY_WORKSPACE_LAYOUT
+        : 'workspace' in source
+          ? structuredClone(source.workspace)
+          : parseLayoutOrDefault(source.layoutJson);
       const seeded = value.locked || source;
       addLayout(value.name, {
         icon: value.icon || undefined,
