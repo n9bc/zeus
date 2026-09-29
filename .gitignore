@@ -118,3 +118,7 @@ native/radae/vendor/opus_dnn/
 native/radae/vendor/freedv_text/
 native/build-rade/
 
+
+# Beads / Dolt files (added by bd init)
+.beads/proxieddb/
+*.gate.lock*

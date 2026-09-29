@@ -74,3 +74,9 @@ bd.db
 # causes spurious diffs on every clone. The team-wide config that DOES
 # need to be shared lives in config.yaml (sync.remote etc.).
 metadata.json
+
+# Added by bd (missing required patterns)
+*.gate.lock*
+last_pull
+proxieddb/
+proxied_server_client_info.json
