@@ -22,12 +22,16 @@ describe('transverter bands on the client', () => {
 });
 
 describe('VFO digit places', () => {
-  it('keeps HF at eight places and grows for transverter frequencies', () => {
-    expect(digitPlacesFor(14_200_000)).toHaveLength(8);
-    expect(digitPlacesFor(144_200_000)).toHaveLength(9);
+  it('keeps HF at seven places and grows for transverter frequencies', () => {
+    expect(digitPlacesFor(14_200_000)).toHaveLength(7);
+    expect(digitPlacesFor(144_200_000)).toHaveLength(8);
     const ghz = digitPlacesFor(2_300_100_000);
-    expect(ghz).toHaveLength(10);
+    expect(ghz).toHaveLength(9);
     expect(ghz[0]).toEqual({ decade: 1_000_000_000, separatorAfter: '.' });
-    expect(digitPlacesFor(10_000_000_000)).toHaveLength(11);
+    expect(digitPlacesFor(10_000_000_000)).toHaveLength(10);
+  });
+
+  it('stops at 10 Hz resolution', () => {
+    expect(digitPlacesFor(14_250_000).at(-1)?.decade).toBe(10);
   });
 });

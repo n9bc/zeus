@@ -70,6 +70,8 @@ type DigitPlace = {
   separatorAfter?: '.' | null;
 };
 
+// Resolution stops at 10 Hz (14.250.00): the 1 Hz place is not displayed or
+// wheel-tunable. Typing a frequency still accepts exact Hz.
 const DIGIT_PLACES: readonly DigitPlace[] = [
   { decade: 10_000_000 },
   { decade: 1_000_000, separatorAfter: '.' },
@@ -78,11 +80,10 @@ const DIGIT_PLACES: readonly DigitPlace[] = [
   { decade: 1_000, separatorAfter: '.' },
   { decade: 100 },
   { decade: 10 },
-  { decade: 1 },
 ];
 
 // Above 100 MHz (transverter bands) the display grows digit places — 100 MHz,
-// then 1 GHz with a separator, then 10 GHz. HF keeps its eight places exactly.
+// then 1 GHz with a separator, then 10 GHz. HF keeps its seven places exactly.
 export function digitPlacesFor(hz: number): readonly DigitPlace[] {
   if (hz < 100_000_000) return DIGIT_PLACES;
   const extra: DigitPlace[] = [];
