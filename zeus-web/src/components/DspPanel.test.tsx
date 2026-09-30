@@ -136,47 +136,48 @@ describe('DspPanel SMART control', () => {
     expect(container.textContent).toContain('APPLIED');
   });
 
-  it('cycles NR3 before NR4 when an RNNoise model is active', () => {
+  const modeButton = (name: string) =>
+    container.querySelector<HTMLButtonElement>(`button[aria-label^="${name}:"]`);
+  const openMenu = (name: string) => {
+    act(() => { modeButton(name)!.click(); });
+    return Array.from(
+      document.querySelectorAll<HTMLButtonElement>(`[role="listbox"][aria-label="${name}"] [role="option"]`),
+    );
+  };
+  const pick = (name: string, label: string) => {
+    const option = openMenu(name).find((o) => o.textContent?.trim() === label);
+    expect(option, `${name} option ${label}`).toBeDefined();
+    act(() => { option!.click(); });
+  };
+
+  it('lists NR modes with NR3 before NR4 when an RNNoise model is active', () => {
     useConnectionStore.setState({
       status: 'Connected',
       nr: { ...NR_CONFIG_DEFAULT, nrMode: 'Off' },
       wdspNr3RnnrAvailable: true,
       nr3ModelName: 'rnnoise_nr3_default.rnn',
       nr3UsingBundledDefault: false,
+      wdspNnrAvailable: false,
     });
 
     act(() => {
       root.render(<DspPanel />);
     });
 
-    const nrButton = () => Array.from(container.querySelectorAll<HTMLButtonElement>('button'))
-      .find((b) => {
-        const title = b.getAttribute('title') ?? '';
-        return title.includes('Noise reduction off')
-          || title.includes('NR1')
-          || title.includes('NR2')
-          || title.includes('NR3')
-          || title.includes('NR4');
-      });
+    const options = openMenu('Noise reduction mode');
+    expect(options.map((o) => o.textContent?.trim())).toEqual(['Off', 'NR1', 'NR2', 'NR3', 'NR4']);
+    expect(options.find((o) => o.getAttribute('aria-selected') === 'true')?.textContent).toBe('Off');
 
-    expect(useConnectionStore.getState().nr.nrMode).toBe('Off');
-
-    act(() => { nrButton()!.click(); });
-    expect(useConnectionStore.getState().nr.nrMode).toBe('Anr');
-
-    act(() => { nrButton()!.click(); });
-    expect(useConnectionStore.getState().nr.nrMode).toBe('Emnr');
-
-    act(() => { nrButton()!.click(); });
+    act(() => { options.find((o) => o.textContent === 'NR3')!.click(); });
     expect(useConnectionStore.getState().nr.nrMode).toBe('Rnnr');
-    expect(nrButton()!.textContent?.trim()).toBe('NR3');
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
+    expect(modeButton('Noise reduction mode')!.textContent).toContain('NR3');
 
-    act(() => { nrButton()!.click(); });
+    pick('Noise reduction mode', 'NR4');
     expect(useConnectionStore.getState().nr.nrMode).toBe('Sbnr');
-    expect(nrButton()!.textContent?.trim()).toBe('NR4');
   });
 
-  it('appends NR5 to the cycle only when libwdsp exports NNR', () => {
+  it('offers NR5 only when libwdsp exports NNR', () => {
     useConnectionStore.setState({
       status: 'Connected',
       nr: { ...NR_CONFIG_DEFAULT, nrMode: 'Sbnr' },
@@ -189,21 +190,40 @@ describe('DspPanel SMART control', () => {
       root.render(<DspPanel />);
     });
 
-    const nrButton = () => Array.from(container.querySelectorAll<HTMLButtonElement>('button'))
-      .find((b) => (b.getAttribute('title') ?? '').match(/Noise reduction off|NR[1-5]/));
-
-    act(() => { nrButton()!.click(); });
+    pick('Noise reduction mode', 'NR5');
     expect(useConnectionStore.getState().nr.nrMode).toBe('Nnr');
-    expect(nrButton()!.textContent?.trim()).toBe('NR5');
+    expect(modeButton('Noise reduction mode')!.textContent).toContain('NR5');
 
-    act(() => { nrButton()!.click(); });
-    expect(useConnectionStore.getState().nr.nrMode).toBe('Off');
-
-    // Without the export the cycle wraps straight from NR4 to Off.
-    useConnectionStore.setState({ nr: { ...NR_CONFIG_DEFAULT, nrMode: 'Sbnr' }, wdspNnrAvailable: false });
+    useConnectionStore.setState({ wdspNnrAvailable: false });
     act(() => { root.render(<DspPanel />); });
-    act(() => { nrButton()!.click(); });
-    expect(useConnectionStore.getState().nr.nrMode).toBe('Off');
+    const labels = openMenu('Noise reduction mode').map((o) => o.textContent?.trim());
+    expect(labels).toEqual(['Off', 'NR1', 'NR2', 'NR4']);
+  });
+
+  it('picks a noise blanker mode directly and closes on Escape', () => {
+    act(() => {
+      root.render(<DspPanel />);
+    });
+
+    pick('Noise blanker mode', 'NB2');
+    expect(useConnectionStore.getState().nr.nbMode).toBe('Nb2');
+    expect(modeButton('Noise blanker mode')!.textContent).toContain('NB2');
+
+    expect(openMenu('Noise blanker mode')).toHaveLength(3);
+    act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+    expect(document.querySelector('[role="listbox"]')).toBeNull();
+  });
+
+  it('does not open the NR menu while disconnected', () => {
+    useConnectionStore.setState({ status: 'Disconnected' });
+    act(() => {
+      root.render(<DspPanel />);
+    });
+
+    expect(openMenu('Noise reduction mode')).toHaveLength(0);
+    expect(modeButton('Noise reduction mode')!.getAttribute('aria-disabled')).toBe('true');
   });
 
   it('pops the RX Audio Suite out into its own window from the DSP panel', () => {
