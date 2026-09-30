@@ -43,14 +43,15 @@
 // Zeus is distributed WITHOUT ANY WARRANTY; see the GNU General Public
 // License for details.
 
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   setNr,
   type NbMode,
   type NrConfigDto,
   type NrMode,
 } from '../api/client';
-import { NR_LABEL, nrCycleFor } from './nr-cycle';
+import { NR_LABEL, nrCycleFor, nrModeTitle } from './nr-cycle';
+import { DspModeMenu, type DspModeOption } from './DspModeMenu';
 import { useConnectionStore } from '../state/connection-store';
 import { useSmartNrStore } from '../state/smart-nr-store';
 import { useAudioSuiteStore } from '../state/audio-suite-store';
@@ -61,13 +62,11 @@ import { Nr3ModelPanel } from './nr/Nr3ModelPanel';
 // Leveler max-gain moved to TxFilterPanel (alongside DRV/TUN/MIC) — it's
 // a TX-only stage and lives with the other TX controls now.
 
-// Mirrors the front-panel NR cycle. NR3 (RNNR / RNNoise) joins the cycle only
+// The NR menu lists the front-panel NR cycle. NR3 (RNNR / RNNoise) joins it only
 // when libwdsp exports RNNR and an active model is available (bundled default or
 // operator-installed). NR5 (NNR, WDSP 2.1.0 neural NR) joins at the end of the
-// cycle only when libwdsp exports the NNR setters. Removed NR modes are not
-// exposed.
-// Cycle + labels live in nr-cycle.ts so the assignable NR deck key steps
-// through exactly the same availability-gated modes this panel does.
+// list only when libwdsp exports the NNR setters. Removed NR modes are not
+// exposed. Cycle + labels live in nr-cycle.ts, shared with the NB-NR page.
 // NOTE: this panel historically labelled Anr as 'NR'; the shared table calls
 // it 'NR1', which matches the tooltip this file already used and the way
 // operators refer to it.
@@ -97,12 +96,23 @@ function hasNrSettings(nrMode: NrMode): boolean {
   return nrMode === 'Anr' || nrMode === 'Emnr' || nrMode === 'Sbnr' || nrMode === 'Nnr';
 }
 
-const NB_CYCLE: readonly NbMode[] = ['Off', 'Nb1', 'Nb2'];
 const NB_LABEL: Record<NbMode, string> = {
   Off: 'NB',
   Nb1: 'NB1',
   Nb2: 'NB2',
 };
+
+function nbModeTitle(mode: NbMode): string {
+  switch (mode) {
+    case 'Off': return 'Noise blanker off';
+    case 'Nb1': return 'NB1 (time-domain blanker, xanbEXT)';
+    case 'Nb2': return 'NB2 (time-domain blanker, xnobEXT)';
+  }
+}
+
+const NB_OPTIONS: readonly DspModeOption<NbMode>[] = (['Off', 'Nb1', 'Nb2'] as const).map(
+  (key) => ({ key, label: key === 'Off' ? 'Off' : NB_LABEL[key], title: nbModeTitle(key) }),
+);
 
 export function DspPanel() {
   const nr = useConnectionStore((s) => s.nr);
@@ -146,19 +156,28 @@ export function DspPanel() {
   const nr3Ready = nr3Available && !!nr3ModelName;
   const nnrAvailable = useConnectionStore((s) => s.wdspNnrAvailable);
 
-  const cycleNr = useCallback(() => {
-    if (!connected) return;
-    const cycle = nrCycleFor(nr3Ready, nnrAvailable);
-    const idx = cycle.indexOf(nr.nrMode);
-    const nextIdx = (idx < 0 ? 0 : idx + 1) % cycle.length;
-    send({ ...nr, nrMode: cycle[nextIdx]! });
-  }, [nr, send, connected, nr3Ready, nnrAvailable]);
+  const nrOptions = useMemo<readonly DspModeOption<NrMode>[]>(
+    () =>
+      nrCycleFor(nr3Ready, nnrAvailable).map((key) => ({
+        key,
+        label: key === 'Off' ? 'Off' : NR_LABEL[key],
+        title: nrModeTitle(key),
+      })),
+    [nr3Ready, nnrAvailable],
+  );
 
-  const cycleNb = useCallback(() => {
-    const idx = NB_CYCLE.indexOf(nr.nbMode);
-    const nextIdx = (idx < 0 ? 0 : idx + 1) % NB_CYCLE.length;
-    send({ ...nr, nbMode: NB_CYCLE[nextIdx]! });
-  }, [nr, send]);
+  const selectNr = useCallback(
+    (nrMode: NrMode) => {
+      if (!connected) return;
+      send({ ...nr, nrMode });
+    },
+    [nr, send, connected],
+  );
+
+  const selectNb = useCallback(
+    (nbMode: NbMode) => send({ ...nr, nbMode }),
+    [nr, send],
+  );
 
   const setNbThreshold = useCallback(
     (v: number) => send({ ...nr, nbThreshold: v }),
@@ -216,21 +235,16 @@ export function DspPanel() {
   return (
     <div className="dsp-grid">
       <div className="dsp-row">
-        <button
-          type="button"
+        <DspModeMenu
+          menuLabel="Noise blanker mode"
+          value={nr.nbMode}
+          options={NB_OPTIONS}
+          onSelect={selectNb}
+          buttonLabel={NB_LABEL[nr.nbMode]}
+          title={nbModeTitle(nr.nbMode)}
+          active={nbActive}
           disabled={!connected}
-          onClick={cycleNb}
-          className={`btn sm ${nbActive ? 'active' : ''}`}
-          title={
-            nr.nbMode === 'Off'
-              ? 'Noise blanker off'
-              : nr.nbMode === 'Nb1'
-                ? 'NB1 (time-domain blanker, xanbEXT)'
-                : 'NB2 (time-domain blanker, xnobEXT)'
-          }
-        >
-          {NB_LABEL[nr.nbMode]}
-        </button>
+        />
         <Slider
           label="Thresh"
           value={nr.nbThreshold}
@@ -253,15 +267,17 @@ export function DspPanel() {
         >
           SMART
         </button>
-        <button
-          type="button"
-          onClick={cycleNr}
-          aria-disabled={!connected}
-          className={`btn sm ${nrActive ? 'active' : ''}`}
+        <DspModeMenu
+          menuLabel="Noise reduction mode"
+          value={nr.nrMode}
+          options={nrOptions}
+          onSelect={selectNr}
+          buttonLabel={NR_LABEL[nr.nrMode]}
           title={nrButtonTitle(nr.nrMode)}
-        >
-          {NR_LABEL[nr.nrMode]}
-        </button>
+          active={nrActive}
+          disabled={!connected}
+          focusableWhenDisabled
+        />
         <button
           type="button"
           onClick={openRxSuite}
