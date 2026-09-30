@@ -185,6 +185,16 @@ export function LeftLayoutBar() {
     replaceActiveWorkspace(parseLayoutOrDefault(saved.layoutJson));
   };
 
+  // Reset the current workspace to a built-in arrangement in place, keeping its
+  // lock state.
+  const handleResetToBuiltIn = (id: string) => {
+    const builtIn = findBuiltInLayout(id);
+    if (!builtIn) return;
+    const next = structuredClone(builtIn.workspace);
+    if (useLayoutStore.getState().workspace.locked) next.locked = true;
+    replaceActiveWorkspace(next);
+  };
+
   // Overwrite a saved layout with the current workspace arrangement.
   const handleReplaceSaved = (id: string) => {
     void replaceSavedLayout(id, useLayoutStore.getState().workspace);
@@ -423,6 +433,7 @@ export function LeftLayoutBar() {
             onSelectWorkspace: openManage,
             onDeleteWorkspace: handleDeleteWorkspace,
             canDeleteWorkspace: layouts.length > 1,
+            onResetToBuiltIn: handleResetToBuiltIn,
             savedLayouts,
             onSaveWorkspaceToLibrary: handleSaveToLibrary,
             onApplySaved: handleApplySaved,
