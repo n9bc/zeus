@@ -81,6 +81,8 @@ export interface LayoutManagerControls {
   onDeleteWorkspace: (id: string) => void;
   /** False when only one workspace remains (the last can't be deleted). */
   canDeleteWorkspace: boolean;
+  /** Replace the selected workspace's panels with a built-in arrangement. */
+  onResetToBuiltIn: (id: string) => void;
 
   /** The reusable saved-layout presets for this radio. */
   savedLayouts: SavedLayoutEntry[];
@@ -126,6 +128,8 @@ export function LayoutSettingsModal({
   const [locked, setLocked] = useState(initial.locked);
   // Manager-only transient state.
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // Built-in id armed for a two-click reset, or null.
+  const [confirmReset, setConfirmReset] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement | null>(null);
   const nameRef = useRef<HTMLInputElement | null>(null);
 
@@ -145,6 +149,7 @@ export function LayoutSettingsModal({
     setDescription(initial.description);
     setLocked(initial.locked);
     setConfirmDelete(false);
+    setConfirmReset(null);
     // Resync only when the managed selection changes, not on every keystroke.
   }, [manager?.selectedId]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -433,6 +438,26 @@ export function LayoutSettingsModal({
               {confirmDelete ? 'Confirm delete?' : 'Delete workspace'}
             </button>
           )}
+          {manager &&
+            BUILT_IN_LAYOUTS.map((b) => (
+              <button
+                key={b.id}
+                type="button"
+                className="btn ghost"
+                onClick={() => {
+                  if (confirmReset !== b.id) {
+                    setConfirmReset(b.id);
+                    return;
+                  }
+                  manager.onResetToBuiltIn(b.id);
+                  setConfirmReset(null);
+                }}
+                onBlur={() => setConfirmReset(null)}
+                title={`Replace this workspace's panels with the built-in ${b.name} arrangement`}
+              >
+                {confirmReset === b.id ? 'Confirm reset?' : `Reset to ${b.name}`}
+              </button>
+            ))}
           <span className="layout-settings-actions-spacer" />
           <button type="button" className="btn ghost" onClick={onClose}>
             Cancel
