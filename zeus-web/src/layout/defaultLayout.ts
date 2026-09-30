@@ -72,14 +72,14 @@ export const DEFAULT_WORKSPACE_LAYOUT: WorkspaceLayout = {
 //     each end back when it showed 1 Hz.)
 //   • dsp 7 cols — the SMART…NBP button row needs ~395 px (397 px available).
 //
-// The filter mini-pan gets 10 rows so its audio passband spectrum reads
-// clearly; the panadapter/waterfall takes the remaining 29.
+// The filter mini-pan gets 12 rows so its audio passband spectrum reads
+// clearly; the panadapter/waterfall takes the remaining 27.
 //
 //   ┌──────────────────────────┬───────────┬───────────────────┐  y=0
 //   │ filter · mini-pan (0..11)│  smeter   │        vfo        │
 //   │                          ├───────────┤     (17..23)      │  y=7
 //   │                          │    tx     │                   │
-//   ├──────────────────────────┤ (12..16)  │                   │  y=10
+//   ├──────────────────────────┤ (12..16)  │                   │  y=12
 //   │                          │           ├───────────────────┤  y=16
 //   │       hero (0..11)       ├───────────┤                   │  y=18
 //   │                          │ txmeters  │        dsp        │
@@ -103,8 +103,8 @@ export const LAPTOP_LAYOUT_TEMPLATE: BuiltInLayout = {
   workspace: {
     schemaVersion: 8,
     tiles: [
-      { uid: 'tile-filter',   panelId: 'filter',   x: 0,  y: 0,  w: 12, h: 10 },
-      { uid: 'tile-hero',     panelId: 'hero',     x: 0,  y: 10, w: 12, h: 29 },
+      { uid: 'tile-filter',   panelId: 'filter',   x: 0,  y: 0,  w: 12, h: 12 },
+      { uid: 'tile-hero',     panelId: 'hero',     x: 0,  y: 12, w: 12, h: 27 },
       { uid: 'tile-smeter',   panelId: 'smeter',   x: 12, y: 0,  w: 5,  h: 7  },
       { uid: 'tile-tx',       panelId: 'tx',       x: 12, y: 7,  w: 5,  h: 11 },
       { uid: 'tile-txmeters', panelId: 'txmeters', x: 12, y: 18, w: 5,  h: 21 },
