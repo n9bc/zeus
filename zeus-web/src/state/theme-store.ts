@@ -56,6 +56,9 @@ export const TWEAKABLE_TOKENS = [
   '--fg-0',
   '--fg-1',
   '--fg-2',
+  '--vfo-digits',
+  '--vfo-separators',
+  '--vfo-glow',
 ] as const;
 
 export type TweakableToken = (typeof TWEAKABLE_TOKENS)[number];

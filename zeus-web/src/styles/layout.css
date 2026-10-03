@@ -2616,12 +2616,12 @@
   font-weight: 200;
   font-size: clamp(38px, 9cqw, 140px);
   letter-spacing: 0;
-  color: var(--fg-0);
+  color: var(--vfo-digits);
   font-variant-numeric: tabular-nums;
   line-height: 1.05;
   margin: 4px 0;
   justify-content: center;
-  text-shadow: 0 0 12px color-mix(in srgb, var(--vfo-filter-color, var(--accent)) 25%, transparent);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--vfo-glow, var(--vfo-filter-color, var(--accent))) 25%, transparent);
 }
 .freq-digits .digit {
   background: none; border: none; color: inherit; font: inherit;
@@ -2630,16 +2630,16 @@
   transition: color var(--dur-fast), text-shadow var(--dur-fast);
 }
 .freq-digits .digit:hover {
-  color: var(--vfo-filter-color, var(--accent));
-  text-shadow: 0 0 10px var(--vfo-filter-color, var(--accent));
+  color: var(--vfo-glow, var(--vfo-filter-color, var(--accent)));
+  text-shadow: 0 0 10px var(--vfo-glow, var(--vfo-filter-color, var(--accent)));
 }
 .freq-digits .digit.leading { color: var(--fg-4); }
 .freq-digits.is-locked { opacity: 0.78; }
 .freq-digits.is-locked .digit:hover {
   color: inherit;
-  text-shadow: 0 0 12px color-mix(in srgb, var(--vfo-filter-color, var(--accent)) 25%, transparent);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--vfo-glow, var(--vfo-filter-color, var(--accent))) 25%, transparent);
 }
-.freq-digits .sep { color: var(--fg-1); padding: 0 1px; font-weight: 200; }
+.freq-digits .sep { color: var(--vfo-separators); padding: 0 1px; font-weight: 200; }
 .freq-bot {
   display: flex;
   align-items: center;
@@ -2675,7 +2675,7 @@
   font-weight: 250;
   letter-spacing: 0;
   line-height: 0.96;
-  text-shadow: 0 0 10px color-mix(in srgb, var(--vfo-filter-color, var(--accent)) 18%, transparent);
+  text-shadow: 0 0 10px color-mix(in srgb, var(--vfo-glow, var(--vfo-filter-color, var(--accent))) 18%, transparent);
   transform: translateY(2px);
 }
 .freq-display.compact .freq-digits .digit {

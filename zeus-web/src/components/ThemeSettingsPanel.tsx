@@ -23,11 +23,17 @@ import { G2_THEMES, useG2ThemeStore } from '../state/g2-theme-store';
 // not from a hardcoded default. This means surface tokens like --bg-0 show
 // the silver value in light mode and the near-black value in dark mode,
 // even before the user has saved an override.
-type TokenGroup = 'accent' | 'chassis' | 'line' | 'text';
+type TokenGroup = 'accent' | 'vfo' | 'chassis' | 'line' | 'text';
 
 const TOKEN_META: Record<
   TweakableToken,
-  { label: string; help: string; group: TokenGroup }
+  {
+    label: string;
+    help: string;
+    group: TokenGroup;
+    /** Token whose value the swatch shows while this one is unset. */
+    defaultFrom?: TweakableToken;
+  }
 > = {
   '--accent': {
     label: 'Accent',
@@ -119,15 +125,31 @@ const TOKEN_META: Record<
     help: 'Help text, less-critical labels.',
     group: 'text',
   },
+  '--vfo-digits': {
+    label: 'VFO digits',
+    help: 'The frequency readout digits. Defaults to primary text.',
+    group: 'vfo',
+  },
+  '--vfo-separators': {
+    label: 'VFO separators',
+    help: 'The dots between the MHz / kHz / Hz groups. Defaults to secondary text.',
+    group: 'vfo',
+  },
+  '--vfo-glow': {
+    label: 'VFO glow',
+    help: 'Glow behind the digits and the hovered digit. Unset, each receiver uses its own colour.',
+    group: 'vfo',
+    defaultFrom: '--accent',
+  },
 };
 
 // Read the live effective value of a CSS variable from the document root.
-// Falls back to '#000000' if the value isn't a 6-digit hex (e.g. rgba()).
+// Returns null if the value isn't a hex colour (unset, or e.g. rgba()).
 // Used so the colour swatch reflects the *currently rendered* colour even
 // when no override is set, which matters for surface tokens that flip
 // between themes.
-function readEffective(token: TweakableToken): string {
-  if (typeof window === 'undefined') return '#000000';
+function readEffective(token: TweakableToken): string | null {
+  if (typeof window === 'undefined') return null;
   const raw = getComputedStyle(document.documentElement)
     .getPropertyValue(token)
     .trim()
@@ -136,7 +158,7 @@ function readEffective(token: TweakableToken): string {
   if (/^#[0-9a-f]{3}$/.test(raw)) {
     return ('#' + raw[1] + raw[1] + raw[2] + raw[2] + raw[3] + raw[3]).toUpperCase();
   }
-  return '#000000';
+  return null;
 }
 
 const THEME_OPTIONS: ReadonlyArray<{
@@ -183,6 +205,10 @@ const GROUP_META: Record<
     blurb: 'Hairlines, dividers, input outlines.',
     warn: true,
   },
+  vfo: {
+    title: 'VFO readout',
+    blurb: 'Colours of the frequency display only — nothing else in the app changes.',
+  },
   text: {
     title: 'Text',
     blurb:
@@ -191,7 +217,7 @@ const GROUP_META: Record<
   },
 };
 
-const GROUP_ORDER: ReadonlyArray<TokenGroup> = ['accent', 'chassis', 'line', 'text'];
+const GROUP_ORDER: ReadonlyArray<TokenGroup> = ['accent', 'vfo', 'chassis', 'line', 'text'];
 
 export function ThemeSettingsPanel() {
   const theme = useThemeStore((s) => s.theme);
@@ -210,7 +236,10 @@ export function ThemeSettingsPanel() {
     // applied to the document before we read computed styles.
     const id = requestAnimationFrame(() => {
       const next: Partial<Record<TweakableToken, string>> = {};
-      for (const tok of TWEAKABLE_TOKENS) next[tok] = readEffective(tok);
+      for (const tok of TWEAKABLE_TOKENS) {
+        const fallback = TOKEN_META[tok].defaultFrom;
+        next[tok] = readEffective(tok) ?? (fallback && readEffective(fallback)) ?? '#000000';
+      }
       setEffective(next);
     });
     return () => cancelAnimationFrame(id);
@@ -220,7 +249,7 @@ export function ThemeSettingsPanel() {
 
   // Bucket tokens by group, preserving TWEAKABLE_TOKENS order within each.
   const tokensByGroup: Record<TokenGroup, TweakableToken[]> = {
-    accent: [], chassis: [], line: [], text: [],
+    accent: [], vfo: [], chassis: [], line: [], text: [],
   };
   for (const tok of TWEAKABLE_TOKENS) {
     tokensByGroup[TOKEN_META[tok].group].push(tok);

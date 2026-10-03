@@ -41,6 +41,12 @@
   --fg-3: #5a5a60;
   --fg-4: #3a3a40;          /* extra-muted for borders/sep */
 
+  /* VFO readout — operator-tweakable, default to the text tokens so they
+     follow the light theme too. --vfo-glow is deliberately undeclared: unset,
+     the glow keeps each receiver's own colour (see .freq-digits). */
+  --vfo-digits:     var(--fg-0);
+  --vfo-separators: var(--fg-1);
+
   /* ----- Accents — blue as accent ONLY, not a surface tint ----- */
   --accent:        #0c5f9c;
   --accent-bright: #4ea6ff;
